@@ -64,7 +64,7 @@ function Auth() {
     return (
       <div style={{
         minHeight:'100vh',
-        backgroundImage:'url(/background.jpg)',
+        backgroundImage:'url(/background.PNG)',
         backgroundSize:'cover',
         backgroundPosition:'center',
         display:'flex',
@@ -107,7 +107,7 @@ function Auth() {
   return (
     <div style={{
       minHeight:'100vh',
-      backgroundImage:'url(/background.jpg)',
+      backgroundImage:'url(/background.PNG)',
       backgroundSize:'cover',
       backgroundPosition:'center',
       display:'flex',
