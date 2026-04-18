@@ -14,12 +14,12 @@ function Home({ session, onNavigate }) {
     await supabase.auth.signOut()
   }
 
-  // جيب البروفيل
+  // جيب البروفيل مع type_compte
   useEffect(() => {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('nom, avatar_url')
+        .select('nom, avatar_url, type_compte')
         .eq('id', session.user.id)
         .single()
       if (data) setProfile(data)
@@ -85,53 +85,34 @@ function Home({ session, onNavigate }) {
       <div style={{ background:'#1a6b3c', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 سوق العيد</h2>
 
-        {/* أيقونة المستخدم مع دروب داون */}
+        {/* دروب داون */}
         <div ref={menuRef} style={{ position:'relative' }}>
           <div
             onClick={() => setShowMenu(!showMenu)}
             style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', background:'rgba(255,255,255,0.15)', padding:'6px 12px', borderRadius:'25px' }}
           >
-            {/* الصورة أو الأيقونة */}
             <div style={{ position:'relative' }}>
               {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt="بروفيل"
-                  style={{ width:'35px', height:'35px', borderRadius:'50%', objectFit:'cover', border:'2px solid white' }}
-                />
+                <img src={profile.avatar_url} alt="بروفيل" style={{ width:'35px', height:'35px', borderRadius:'50%', objectFit:'cover', border:'2px solid white' }} />
               ) : (
-                <div style={{ width:'35px', height:'35px', borderRadius:'50%', background:'rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>
-                  👤
-                </div>
+                <div style={{ width:'35px', height:'35px', borderRadius:'50%', background:'rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>👤</div>
               )}
-              {/* هلالة الرسائل */}
               {unreadCount > 0 && (
                 <span style={{ position:'absolute', top:'-3px', left:'-3px', background:'red', color:'white', borderRadius:'50%', width:'16px', height:'16px', fontSize:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' }}>
                   {unreadCount}
                 </span>
               )}
             </div>
-            {/* الاسم */}
             <span style={{ color:'white', fontSize:'14px', fontWeight:'bold' }}>
               {profile?.nom?.split(' ')[0] || 'مرحبا'}
             </span>
-            {/* سهم */}
             <span style={{ color:'white', fontSize:'12px' }}>{showMenu ? '▲' : '▼'}</span>
           </div>
 
-          {/* الدروب داون */}
+          {/* قائمة الدروب داون */}
           {showMenu && (
-            <div style={{
-              position:'absolute',
-              top:'50px',
-              left:'0',
-              background:'white',
-              borderRadius:'12px',
-              boxShadow:'0 8px 25px rgba(0,0,0,0.15)',
-              minWidth:'200px',
-              zIndex:100,
-              overflow:'hidden'
-            }}>
+            <div style={{ position:'absolute', top:'50px', left:'0', background:'white', borderRadius:'12px', boxShadow:'0 8px 25px rgba(0,0,0,0.15)', minWidth:'200px', zIndex:100, overflow:'hidden' }}>
+
               {/* معلومات المستخدم */}
               <div style={{ padding:'15px', background:'#f9f9f9', borderBottom:'1px solid #eee', textAlign:'center' }}>
                 {profile?.avatar_url ? (
@@ -143,19 +124,20 @@ function Home({ session, onNavigate }) {
                 <p style={{ margin:'3px 0 0 0', color:'#999', fontSize:'12px' }}>{session.user.email}</p>
               </div>
 
-              {/* الخيارات */}
               <div style={{ padding:'8px 0' }}>
 
-                {/* إضافة حولي */}
-<div
-  onClick={() => { onNavigate('addListing'); setShowMenu(false) }}
-  style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333' }}
-  onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
->
-  <span>🐑</span>
-  <span>إضافة حولي</span>
-</div>
+                {/* إضافة حولي — غير للبائع */}
+                {profile?.type_compte === 'vendeur' && (
+                  <div
+                    onClick={() => { onNavigate('addListing'); setShowMenu(false) }}
+                    style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🐑</span>
+                    <span>إضافة حولي</span>
+                  </div>
+                )}
 
                 {/* البروفيل */}
                 <div
@@ -212,13 +194,15 @@ function Home({ session, onNavigate }) {
 
       <div style={{ padding:'15px', maxWidth:'600px', margin:'0 auto' }}>
 
-        {/* زر إضافة حولي */}
-        <button
-          onClick={() => onNavigate('addListing')}
-          style={{ width:'100%', padding:'15px', background:'#1a6b3c', color:'white', border:'none', borderRadius:'10px', fontSize:'18px', cursor:'pointer', fontWeight:'bold', marginBottom:'20px' }}
-        >
-          🐑 إضافة حولي
-        </button>
+        {/* زر إضافة حولي — غير للبائع */}
+        {profile?.type_compte === 'vendeur' && (
+          <button
+            onClick={() => onNavigate('addListing')}
+            style={{ width:'100%', padding:'15px', background:'#1a6b3c', color:'white', border:'none', borderRadius:'10px', fontSize:'18px', cursor:'pointer', fontWeight:'bold', marginBottom:'20px' }}
+          >
+            🐑 إضافة حولي
+          </button>
+        )}
 
         {/* قائمة الحوالا */}
         {loading ? (
@@ -256,11 +240,7 @@ function Home({ session, onNavigate }) {
                   {annonce.poids && <span style={{ background:'#f0f0f0', padding:'4px 10px', borderRadius:'15px', fontSize:'14px' }}>⚖️ {annonce.poids} كيلو</span>}
                   {annonce.age_mois && <span style={{ background:'#f0f0f0', padding:'4px 10px', borderRadius:'15px', fontSize:'14px' }}>📅 {annonce.age_mois} شهر</span>}
                   {annonce.region && <span style={{ background:'#f0f0f0', padding:'4px 10px', borderRadius:'15px', fontSize:'14px' }}>📍 {annonce.region}</span>}
-                  <span style={{
-                    background: annonce.livraison ? '#e8f5e9' : '#ffeeba',
-                    color: annonce.livraison ? '#1a6b3c' : '#856404',
-                    padding:'4px 10px', borderRadius:'15px', fontSize:'14px', fontWeight:'bold'
-                  }}>
+                  <span style={{ background: annonce.livraison ? '#e8f5e9' : '#ffeeba', color: annonce.livraison ? '#1a6b3c' : '#856404', padding:'4px 10px', borderRadius:'15px', fontSize:'14px', fontWeight:'bold' }}>
                     {annonce.livraison ? '🚚 توصيل متاح' : '📍 بدون توصيل'}
                   </span>
                 </div>
