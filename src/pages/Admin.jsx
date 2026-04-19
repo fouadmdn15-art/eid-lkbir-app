@@ -135,7 +135,7 @@ function Admin({ session, onBack }) {
 
   // حذف حساب
   const handleDeleteUser = async (userId, nom) => {
-    const confirmMsg = `واش بغيتي تحذف حساب "${nom}"؟\n\n⚠️ غادي يتمسح:\n✅ البروفيل\n✅ الإعلانات\n✅ الرسائل\n\n❗ ملاحظة: الإيميل خاصك تمسحو يدوياً من Supabase Dashboard → Authentication → Users`
+    const confirmMsg = `واش بغيتي تحذف حساب "${nom}"؟\n\n⚠️ غادي يتمسح:\n✅ البروفيل\n✅ الإعلانات\n✅ الرسائل\n\n❗ ملاحظة: الإيميل خاصك تمسحو يدوياً من Supabase (كاين زر فوق "🔗 Supabase Users")`
     if (!window.confirm(confirmMsg)) return
 
     // حذف الإعلانات أولاً
@@ -156,12 +156,8 @@ function Admin({ session, onBack }) {
     const { error } = await supabase.from('profiles').delete().eq('id', userId)
     if (!error) {
       setAllUsers(allUsers.filter(u => u.id !== userId))
-      setActionMessage('✅ تم حذف البيانات! (الإيميل خاصك تمسحو من Supabase)')
-      setTimeout(() => setActionMessage(''), 5000)
-      // نفتح Supabase Dashboard أوتوماتيكياً
-      if (window.confirm('واش تبغي تفتح Supabase باش تمسح الإيميل دابا؟')) {
-        window.open('https://supabase.com/dashboard/project/dkcruxuitukexjywfyct/auth/users', '_blank')
-      }
+      setActionMessage('✅ تم حذف البيانات! دابا امسح الإيميل من Supabase (كليكي على "🔗 Supabase Users" فوق)')
+      setTimeout(() => setActionMessage(''), 10000)
     } else {
       setActionMessage('⚠️ خطأ: ' + error.message)
     }
@@ -173,7 +169,17 @@ function Admin({ session, onBack }) {
       {/* الهيدر */}
       <div style={{ background:'#1a3a6b', padding:'15px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h2 style={{ color:'white', margin:0 }}>🛠️ لوحة التحكم</h2>
-        <button onClick={onBack} style={{ background:'rgba(255,255,255,0.2)', color:'white', border:'none', padding:'8px 15px', borderRadius:'8px', cursor:'pointer' }}>رجوع</button>
+        <div style={{ display:'flex', gap:'10px' }}>
+          <a
+            href="https://supabase.com/dashboard/project/dkcruxuitukexjywfyct/auth/users"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ background:'#3ecf8e', color:'white', textDecoration:'none', padding:'8px 15px', borderRadius:'8px', fontSize:'13px', fontWeight:'bold', display:'flex', alignItems:'center', gap:'5px' }}
+          >
+            🔗 Supabase Users
+          </a>
+          <button onClick={onBack} style={{ background:'rgba(255,255,255,0.2)', color:'white', border:'none', padding:'8px 15px', borderRadius:'8px', cursor:'pointer' }}>رجوع</button>
+        </div>
       </div>
 
       {/* التابات */}
