@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './config/supabase'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
@@ -23,25 +24,34 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  if (!session) return <Auth />
+  const renderPage = () => {
+    if (!session) return <Auth />
 
-  if (page === 'addListing') {
-    return <AddListing session={session} onBack={() => setPage('home')} />
+    if (page === 'addListing') {
+      return <AddListing session={session} onBack={() => setPage('home')} />
+    }
+
+    if (page === 'profile') {
+      return <Profile session={session} onBack={() => setPage('home')} onNavigate={setPage} />
+    }
+
+    if (page === 'support') {
+      return <Support session={session} onBack={() => setPage('home')} />
+    }
+
+    if (page === 'admin') {
+      return <Admin session={session} onBack={() => setPage('home')} />
+    }
+
+    return <Home session={session} onNavigate={setPage} />
   }
 
-  if (page === 'profile') {
-  return <Profile session={session} onBack={() => setPage('home')} onNavigate={setPage} />
-}
-
-  if (page === 'support') {
-    return <Support session={session} onBack={() => setPage('home')} />
-  }
-
-  if (page === 'admin') {
-    return <Admin session={session} onBack={() => setPage('home')} />
-  }
-
-  return <Home session={session} onNavigate={setPage} />
+  return (
+    <>
+      {renderPage()}
+      <Analytics />
+    </>
+  )
 }
 
 export default App
