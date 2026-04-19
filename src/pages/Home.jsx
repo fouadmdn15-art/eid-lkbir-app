@@ -8,14 +8,27 @@ function Home({ session, onNavigate }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [profile, setProfile] = useState(null)
   const [showMenu, setShowMenu] = useState(false)
+  const [showAuthPopup, setShowAuthPopup] = useState(false)
+  const [authPopupMessage, setAuthPopupMessage] = useState('')
   const menuRef = useRef(null)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
 
-  // جيب البروفيل مع type_compte
+  // فونكسيون: كيتشيك إيلا المستخدم مسجل، إيلا لا يبان popup
+  const requireAuth = (message, action) => {
+    if (!session) {
+      setAuthPopupMessage(message)
+      setShowAuthPopup(true)
+      return
+    }
+    action()
+  }
+
+  // جيب البروفيل — غير إيلا كاين session
   useEffect(() => {
+    if (!session) return
     const fetchProfile = async () => {
       const { data } = await supabase
         .from('profiles')
@@ -27,8 +40,9 @@ function Home({ session, onNavigate }) {
     fetchProfile()
   }, [session])
 
-  // جيب عدد الرسائل الجديدة
+  // جيب عدد الرسائل الجديدة — غير إيلا كاين session
   useEffect(() => {
+    if (!session) return
     const fetchUnread = async () => {
       const { count } = await supabase
         .from('support_messages')
@@ -53,7 +67,7 @@ function Home({ session, onNavigate }) {
     return () => supabase.removeChannel(channel)
   }, [session])
 
-  // جيب الحوالا
+  // جيب الحوالا — دائماً (حتى بلا تسجيل)
   useEffect(() => {
     const fetchAnnonces = async () => {
       const { data, error } = await supabase
@@ -85,103 +99,108 @@ function Home({ session, onNavigate }) {
       <div style={{ background:'#1a6b3c', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 سوق العيد</h2>
 
-        {/* دروب داون */}
-        <div ref={menuRef} style={{ position:'relative' }}>
-          <div
-            onClick={() => setShowMenu(!showMenu)}
-            style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', background:'rgba(255,255,255,0.15)', padding:'6px 12px', borderRadius:'25px' }}
+        {/* إيلا ماشي مسجل: زر دخول/تسجيل */}
+        {!session ? (
+          <button
+            onClick={() => onNavigate('auth')}
+            style={{ background:'white', color:'#1a6b3c', border:'none', padding:'8px 18px', borderRadius:'25px', fontSize:'14px', fontWeight:'bold', cursor:'pointer' }}
           >
-            <div style={{ position:'relative' }}>
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="بروفيل" style={{ width:'35px', height:'35px', borderRadius:'50%', objectFit:'cover', border:'2px solid white' }} />
-              ) : (
-                <div style={{ width:'35px', height:'35px', borderRadius:'50%', background:'rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>👤</div>
-              )}
-              {unreadCount > 0 && (
-                <span style={{ position:'absolute', top:'-3px', left:'-3px', background:'red', color:'white', borderRadius:'50%', width:'16px', height:'16px', fontSize:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' }}>
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <span style={{ color:'white', fontSize:'14px', fontWeight:'bold' }}>
-              {profile?.nom?.split(' ')[0] || 'مرحبا'}
-            </span>
-            <span style={{ color:'white', fontSize:'12px' }}>{showMenu ? '▲' : '▼'}</span>
-          </div>
-
-          {/* قائمة الدروب داون */}
-          {showMenu && (
-            <div style={{ position:'absolute', top:'50px', left:'0', background:'white', borderRadius:'12px', boxShadow:'0 8px 25px rgba(0,0,0,0.15)', minWidth:'200px', zIndex:100, overflow:'hidden' }}>
-
-              {/* معلومات المستخدم */}
-              <div style={{ padding:'15px', background:'#f9f9f9', borderBottom:'1px solid #eee', textAlign:'center' }}>
+            🚪 دخول / تسجيل
+          </button>
+        ) : (
+          /* إيلا مسجل: دروب داون */
+          <div ref={menuRef} style={{ position:'relative' }}>
+            <div
+              onClick={() => setShowMenu(!showMenu)}
+              style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', background:'rgba(255,255,255,0.15)', padding:'6px 12px', borderRadius:'25px' }}
+            >
+              <div style={{ position:'relative' }}>
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="بروفيل" style={{ width:'50px', height:'50px', borderRadius:'50%', objectFit:'cover', border:'2px solid #1a6b3c', marginBottom:'8px' }} />
+                  <img src={profile.avatar_url} alt="بروفيل" style={{ width:'35px', height:'35px', borderRadius:'50%', objectFit:'cover', border:'2px solid white' }} />
                 ) : (
-                  <div style={{ width:'50px', height:'50px', borderRadius:'50%', background:'#e8f5e9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'25px', margin:'0 auto 8px auto' }}>👤</div>
+                  <div style={{ width:'35px', height:'35px', borderRadius:'50%', background:'rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>👤</div>
                 )}
-                <p style={{ margin:0, fontWeight:'bold', color:'#333', fontSize:'15px' }}>{profile?.nom || 'مستخدم'}</p>
-                <p style={{ margin:'3px 0 0 0', color:'#999', fontSize:'12px' }}>{session.user.email}</p>
+                {unreadCount > 0 && (
+                  <span style={{ position:'absolute', top:'-3px', left:'-3px', background:'red', color:'white', borderRadius:'50%', width:'16px', height:'16px', fontSize:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' }}>
+                    {unreadCount}
+                  </span>
+                )}
               </div>
+              <span style={{ color:'white', fontSize:'14px', fontWeight:'bold' }}>
+                {profile?.nom?.split(' ')[0] || 'مرحبا'}
+              </span>
+              <span style={{ color:'white', fontSize:'12px' }}>{showMenu ? '▲' : '▼'}</span>
+            </div>
 
-              <div style={{ padding:'8px 0' }}>
+            {/* قائمة الدروب داون */}
+            {showMenu && (
+              <div style={{ position:'absolute', top:'50px', left:'0', background:'white', borderRadius:'12px', boxShadow:'0 8px 25px rgba(0,0,0,0.15)', minWidth:'200px', zIndex:100, overflow:'hidden' }}>
 
-                {/* إضافة حولي — غير للبائع */}
-                {profile?.type_compte === 'vendeur' && (
+                <div style={{ padding:'15px', background:'#f9f9f9', borderBottom:'1px solid #eee', textAlign:'center' }}>
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="بروفيل" style={{ width:'50px', height:'50px', borderRadius:'50%', objectFit:'cover', border:'2px solid #1a6b3c', marginBottom:'8px' }} />
+                  ) : (
+                    <div style={{ width:'50px', height:'50px', borderRadius:'50%', background:'#e8f5e9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'25px', margin:'0 auto 8px auto' }}>👤</div>
+                  )}
+                  <p style={{ margin:0, fontWeight:'bold', color:'#333', fontSize:'15px' }}>{profile?.nom || 'مستخدم'}</p>
+                  <p style={{ margin:'3px 0 0 0', color:'#999', fontSize:'12px' }}>{session.user.email}</p>
+                </div>
+
+                <div style={{ padding:'8px 0' }}>
+
+                  {profile?.type_compte === 'vendeur' && (
+                    <div
+                      onClick={() => { onNavigate('addListing'); setShowMenu(false) }}
+                      style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>🐑</span>
+                      <span>إضافة حولي</span>
+                    </div>
+                  )}
+
                   <div
-                    onClick={() => { onNavigate('addListing'); setShowMenu(false) }}
+                    onClick={() => { onNavigate('profile'); setShowMenu(false) }}
                     style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <span>🐑</span>
-                    <span>إضافة حولي</span>
+                    <span>👤</span>
+                    <span>البروفيل</span>
                   </div>
-                )}
 
-                {/* البروفيل */}
-                <div
-                  onClick={() => { onNavigate('profile'); setShowMenu(false) }}
-                  style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span>👤</span>
-                  <span>البروفيل</span>
-                </div>
+                  <div
+                    onClick={() => { onNavigate('support'); setShowMenu(false) }}
+                    style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333', position:'relative' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>💬</span>
+                    <span>تواصل مع الفريق</span>
+                    {unreadCount > 0 && (
+                      <span style={{ background:'red', color:'white', borderRadius:'50%', width:'18px', height:'18px', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', marginRight:'auto' }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
 
-                {/* تواصل معنا */}
-                <div
-                  onClick={() => { onNavigate('support'); setShowMenu(false) }}
-                  style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#333', position:'relative' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span>💬</span>
-                  <span>تواصل مع الفريق</span>
-                  {unreadCount > 0 && (
-                    <span style={{ background:'red', color:'white', borderRadius:'50%', width:'18px', height:'18px', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', marginRight:'auto' }}>
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
+                  <div style={{ height:'1px', background:'#eee', margin:'5px 0' }} />
 
-                <div style={{ height:'1px', background:'#eee', margin:'5px 0' }} />
-
-                {/* خروج */}
-                <div
-                  onClick={handleLogout}
-                  style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#f44336' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span>🚪</span>
-                  <span>خروج</span>
+                  <div
+                    onClick={handleLogout}
+                    style={{ padding:'12px 20px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', color:'#f44336' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🚪</span>
+                    <span>خروج</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* popup الصورة المكبرة */}
@@ -192,16 +211,50 @@ function Home({ session, onNavigate }) {
         </div>
       )}
 
+      {/* popup ديال التسجيل */}
+      {showAuthPopup && (
+        <div onClick={() => setShowAuthPopup(false)} style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000, padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'15px', padding:'30px', maxWidth:'400px', width:'100%', textAlign:'center', boxShadow:'0 10px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize:'55px', marginBottom:'10px' }}>🔒</div>
+            <h2 style={{ color:'#1a6b3c', margin:'0 0 10px 0' }}>سجل دخولك أولاً</h2>
+            <p style={{ color:'#666', fontSize:'15px', marginBottom:'25px' }}>
+              {authPopupMessage}
+            </p>
+            <button
+              onClick={() => { setShowAuthPopup(false); onNavigate('auth') }}
+              style={{ width:'100%', padding:'14px', background:'linear-gradient(135deg,#1a6b3c,#2d9e5f)', color:'white', border:'none', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', marginBottom:'10px' }}
+            >
+              🚪 دخول / تسجيل
+            </button>
+            <button
+              onClick={() => setShowAuthPopup(false)}
+              style={{ width:'100%', padding:'12px', background:'transparent', color:'#999', border:'1px solid #ddd', borderRadius:'8px', fontSize:'14px', cursor:'pointer' }}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding:'15px', maxWidth:'600px', margin:'0 auto' }}>
 
-        {/* زر إضافة حولي — غير للبائع */}
-        {profile?.type_compte === 'vendeur' && (
+        {/* زر إضافة حولي — يبان للجميع */}
+        {(!session || profile?.type_compte === 'vendeur') && (
           <button
-            onClick={() => onNavigate('addListing')}
+            onClick={() => requireAuth('باش تضيف حولي، خاصك تسجل حساب ديالك (بائع). الأمر ياخد أقل من دقيقة!', () => onNavigate('addListing'))}
             style={{ width:'100%', padding:'15px', background:'#1a6b3c', color:'white', border:'none', borderRadius:'10px', fontSize:'18px', cursor:'pointer', fontWeight:'bold', marginBottom:'20px' }}
           >
             🐑 إضافة حولي
           </button>
+        )}
+
+        {/* رسالة ترحيب للزوار ماشي مسجلين */}
+        {!session && (
+          <div style={{ background:'linear-gradient(135deg,#1a6b3c,#2d9e5f)', color:'white', padding:'15px', borderRadius:'10px', marginBottom:'20px', textAlign:'center' }}>
+            <p style={{ margin:0, fontSize:'15px' }}>
+              👋 مرحبا بك فـ <strong>سوق العيد</strong>! تصفح الحوالا بحرية، وسجل غير ملي تبغي تتواصل مع بائع.
+            </p>
+          </div>
         )}
 
         {/* قائمة الحوالا */}
@@ -253,14 +306,27 @@ function Home({ session, onNavigate }) {
                   <p style={{ color:'#999', fontSize:'13px', margin:'0 0 10px 0' }}>👤 {annonce.profiles.nom}</p>
                 )}
 
-                <a
-                  href={`https://wa.me/212${annonce.profiles?.telephone?.replace(/^0/, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display:'block', width:'100%', padding:'10px', background:'#25D366', color:'white', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', textAlign:'center', textDecoration:'none', boxSizing:'border-box' }}
-                >
-                  💬 تواصل عبر واتساب
-                </a>
+                {/* زر WhatsApp — إيلا مسجل: لينك مباشر. إيلا لا: popup */}
+                {session ? (
+                  <a
+                    href={`https://wa.me/212${annonce.profiles?.telephone?.replace(/^0/, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display:'block', width:'100%', padding:'10px', background:'#25D366', color:'white', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', textAlign:'center', textDecoration:'none', boxSizing:'border-box' }}
+                  >
+                    💬 تواصل عبر واتساب
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setAuthPopupMessage('باش تتواصل مع البائع عبر واتساب، خاصك تسجل دخولك أولاً. التسجيل مجاني وياخد أقل من دقيقة!')
+                      setShowAuthPopup(true)
+                    }}
+                    style={{ display:'block', width:'100%', padding:'10px', background:'#25D366', color:'white', border:'none', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', textAlign:'center', boxSizing:'border-box' }}
+                  >
+                    💬 تواصل عبر واتساب
+                  </button>
+                )}
               </div>
             </div>
           ))

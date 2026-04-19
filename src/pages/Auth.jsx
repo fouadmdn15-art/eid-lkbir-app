@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../config/supabase'
 
-function Auth() {
+function Auth({ onBack }) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,7 +46,6 @@ function Auth() {
       setLoading(false)
       return
     }
-    // حفظ البروفيل
     if (data.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
@@ -54,7 +53,6 @@ function Auth() {
         type_compte: typeCompte
       })
     }
-    // إظهار رسالة التأكيد
     setEmailSent(true)
     setLoading(false)
   }
@@ -120,6 +118,17 @@ function Auth() {
       position:'relative'
     }}>
       <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(26,107,60,0.45)' }} />
+
+      {/* زر الرجوع — يبان غير إيلا كان onBack متوفر */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          style={{ position:'absolute', top:'20px', right:'20px', zIndex:10, background:'rgba(255,255,255,0.95)', color:'#1a6b3c', border:'none', padding:'10px 18px', borderRadius:'25px', fontSize:'14px', cursor:'pointer', fontWeight:'bold', boxShadow:'0 4px 12px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', gap:'5px' }}
+        >
+          <span>→</span>
+          <span>رجوع للرئيسية</span>
+        </button>
+      )}
 
       <div style={{ position:'relative', zIndex:1, width:'100%', maxWidth:'400px' }}>
 

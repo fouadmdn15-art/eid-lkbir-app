@@ -25,24 +25,33 @@ function App() {
   }, [])
 
   const renderPage = () => {
-    if (!session) return <Auth />
+    // صفحة التسجيل/الدخول — تبان غير ملي يطلبها المستخدم
+    if (page === 'auth') {
+      return <Auth onBack={() => setPage('home')} />
+    }
 
+    // الصفحات اللي كتطلب تسجيل إجباري
     if (page === 'addListing') {
+      if (!session) return <Auth onBack={() => setPage('home')} />
       return <AddListing session={session} onBack={() => setPage('home')} />
     }
 
     if (page === 'profile') {
+      if (!session) return <Auth onBack={() => setPage('home')} />
       return <Profile session={session} onBack={() => setPage('home')} onNavigate={setPage} />
     }
 
     if (page === 'support') {
+      if (!session) return <Auth onBack={() => setPage('home')} />
       return <Support session={session} onBack={() => setPage('home')} />
     }
 
     if (page === 'admin') {
+      if (!session) return <Auth onBack={() => setPage('home')} />
       return <Admin session={session} onBack={() => setPage('home')} />
     }
 
+    // الصفحة الرئيسية — تبان للجميع (مسجل أو لا)
     return <Home session={session} onNavigate={setPage} />
   }
 
