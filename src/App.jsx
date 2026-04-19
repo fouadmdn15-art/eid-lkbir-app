@@ -19,21 +19,23 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session)
+        // ملي المستخدم يدخل أو يسجل، رجعو أوتوماتيكياً للصفحة الرئيسية
+        if (session && _event === 'SIGNED_IN') {
+          setPage('home')
+        }
       }
     )
     return () => subscription.unsubscribe()
   }, [])
 
   const renderPage = () => {
-    // صفحة التسجيل/الدخول — تبان غير ملي يطلبها المستخدم
     if (page === 'auth') {
       return <Auth onBack={() => setPage('home')} />
     }
 
-    // الصفحات اللي كتطلب تسجيل إجباري
     if (page === 'addListing') {
       if (!session) return <Auth onBack={() => setPage('home')} />
-      return <AddListing session={session} onBack={() => setPage('home')} />
+      return <AddListing session={session} onBack={() => setPage('home')} onNavigate={setPage} />
     }
 
     if (page === 'profile') {
@@ -51,7 +53,6 @@ function App() {
       return <Admin session={session} onBack={() => setPage('home')} />
     }
 
-    // الصفحة الرئيسية — تبان للجميع (مسجل أو لا)
     return <Home session={session} onNavigate={setPage} />
   }
 
