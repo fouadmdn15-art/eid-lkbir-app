@@ -137,7 +137,7 @@ function Home({ session, onNavigate }) {
               </div>
 
               {showMenu && (
-                <div style={{ position:'absolute', top:'50px', left:'0', background:'white', borderRadius:'12px', boxShadow:'0 8px 25px rgba(0,0,0,0.25)', minWidth:'200px', zIndex:100, overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:'50px', left:'0', background:'white', borderRadius:'12px', boxShadow:'0 8px 25px rgba(0,0,0,0.25)', minWidth:'200px', zIndex:9999, overflow:'hidden' }}>
 
                   <div style={{ padding:'15px', background:'#f9f9f9', borderBottom:'1px solid #eee', textAlign:'center' }}>
                     {profile?.avatar_url ? (
