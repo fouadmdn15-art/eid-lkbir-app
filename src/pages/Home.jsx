@@ -103,7 +103,7 @@ function Home({ session, onNavigate }) {
       <div style={{ position:'relative' }}>
 
         <div style={{ background:'#1a6b3c', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.2)' }}>
-          <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 سوق العيد</h2>
+          <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 الرحبة</h2>
 
           {!session ? (
             <button
