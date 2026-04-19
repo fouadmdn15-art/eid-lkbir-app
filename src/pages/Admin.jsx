@@ -135,17 +135,35 @@ function Admin({ session, onBack }) {
 
   // حذف حساب
   const handleDeleteUser = async (userId, nom) => {
-    if (!window.confirm(`واش بغيتي تحذف حساب ${nom}؟`)) return
+    const confirmMsg = `واش بغيتي تحذف حساب "${nom}"؟\n\n⚠️ غادي يتمسح:\n✅ البروفيل\n✅ الإعلانات\n✅ الرسائل\n\n❗ ملاحظة: الإيميل خاصك تمسحو يدوياً من Supabase Dashboard → Authentication → Users`
+    if (!window.confirm(confirmMsg)) return
+
     // حذف الإعلانات أولاً
-    await supabase.from('annonces').delete().eq('vendeur_id', userId)
+    const { error: annoncesError } = await supabase.from('annonces').delete().eq('vendeur_id', userId)
+    if (annoncesError) {
+      setActionMessage('⚠️ خطأ فحذف الإعلانات: ' + annoncesError.message)
+      return
+    }
+
     // حذف الرسائل
-    await supabase.from('support_messages').delete().eq('user_id', userId)
+    const { error: messagesError } = await supabase.from('support_messages').delete().eq('user_id', userId)
+    if (messagesError) {
+      setActionMessage('⚠️ خطأ فحذف الرسائل: ' + messagesError.message)
+      return
+    }
+
     // حذف البروفيل
     const { error } = await supabase.from('profiles').delete().eq('id', userId)
     if (!error) {
       setAllUsers(allUsers.filter(u => u.id !== userId))
-      setActionMessage('✅ تم حذف الحساب!')
-      setTimeout(() => setActionMessage(''), 3000)
+      setActionMessage('✅ تم حذف البيانات! (الإيميل خاصك تمسحو من Supabase)')
+      setTimeout(() => setActionMessage(''), 5000)
+      // نفتح Supabase Dashboard أوتوماتيكياً
+      if (window.confirm('واش تبغي تفتح Supabase باش تمسح الإيميل دابا؟')) {
+        window.open('https://supabase.com/dashboard/project/dkcruxuitukexjywfyct/auth/users', '_blank')
+      }
+    } else {
+      setActionMessage('⚠️ خطأ: ' + error.message)
     }
   }
 
