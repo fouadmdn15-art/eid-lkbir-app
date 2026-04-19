@@ -102,7 +102,7 @@ function Home({ session, onNavigate }) {
 
       <div style={{ position:'relative' }}>
 
-        <div style={{ background:'rgba(26,107,60,0.95)', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', backdropFilter:'blur(10px)', boxShadow:'0 2px 10px rgba(0,0,0,0.2)' }}>
+        <div style={{ background:'#1a6b3c', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.2)' }}>
           <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 سوق العيد</h2>
 
           {!session ? (
