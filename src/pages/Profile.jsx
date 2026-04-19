@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../config/supabase'
 
 const ADMIN_EMAIL = 'fouadmdn15@gmail.com'
@@ -10,6 +10,8 @@ function Profile({ session, onBack, onNavigate }) {
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false)
+  const fileInputRef = useRef(null)
 
   const [nom, setNom] = useState('')
   const [telephone, setTelephone] = useState('')
@@ -46,7 +48,8 @@ function Profile({ session, onBack, onNavigate }) {
     const file = e.target.files[0]
     if (!file) return
     setUploadingAvatar(true)
-    const fileName = `avatar-${session.user.id}`
+    setShowAvatarMenu(false)
+    const fileName = `avatar-${session.user.id}-${Date.now()}`
     const { error: uploadError } = await supabase.storage
       .from('photos')
       .upload(fileName, file, { upsert: true })
@@ -60,8 +63,39 @@ function Profile({ session, onBack, onNavigate }) {
         .eq('id', session.user.id)
       setProfile({ ...profile, avatar_url: urlData.publicUrl })
       setMessage('✅ تم تحديث الصورة!')
+    } else {
+      setMessage('⚠️ خطأ فرفع الصورة')
     }
     setUploadingAvatar(false)
+    // نفرغو الـ input باش يقدر يرفع نفس الصورة مرة أخرى
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleAvatarDelete = async () => {
+    if (!window.confirm('واش بغيتي تحذف صورة البروفيل؟')) return
+    setShowAvatarMenu(false)
+    setUploadingAvatar(true)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null })
+      .eq('id', session.user.id)
+    if (!error) {
+      setProfile({ ...profile, avatar_url: null })
+      setMessage('✅ تم حذف الصورة!')
+    } else {
+      setMessage('⚠️ خطأ فحذف الصورة')
+    }
+    setUploadingAvatar(false)
+  }
+
+  const handleAvatarClick = () => {
+    // إيلا كاينة صورة: نبان المنيو (تغيير/حذف)
+    // إيلا ماكايناش: نفتحو directement الفايل
+    if (profile?.avatar_url) {
+      setShowAvatarMenu(true)
+    } else {
+      fileInputRef.current?.click()
+    }
   }
 
   const handleSave = async () => {
@@ -111,6 +145,38 @@ function Profile({ session, onBack, onNavigate }) {
         </button>
       </div>
 
+      {/* Popup ديال إدارة الصورة */}
+      {showAvatarMenu && (
+        <div onClick={() => setShowAvatarMenu(false)} style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000, padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'15px', padding:'25px', maxWidth:'350px', width:'100%', boxShadow:'0 10px 40px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ color:'#1a6b3c', margin:'0 0 20px 0', textAlign:'center' }}>صورة البروفيل</h3>
+
+            <button
+              onClick={() => { setShowAvatarMenu(false); fileInputRef.current?.click() }}
+              style={{ width:'100%', padding:'14px', background:'#1a6b3c', color:'white', border:'none', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', marginBottom:'10px', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}
+            >
+              <span>📷</span>
+              <span>تغيير الصورة</span>
+            </button>
+
+            <button
+              onClick={handleAvatarDelete}
+              style={{ width:'100%', padding:'14px', background:'#f44336', color:'white', border:'none', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', marginBottom:'10px', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}
+            >
+              <span>🗑️</span>
+              <span>حذف الصورة</span>
+            </button>
+
+            <button
+              onClick={() => setShowAvatarMenu(false)}
+              style={{ width:'100%', padding:'12px', background:'transparent', color:'#999', border:'1px solid #ddd', borderRadius:'8px', fontSize:'14px', cursor:'pointer' }}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding:'15px', maxWidth:'600px', margin:'0 auto' }}>
 
         <div style={{ background:'white', borderRadius:'12px', padding:'20px', marginBottom:'20px', boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -118,16 +184,34 @@ function Profile({ session, onBack, onNavigate }) {
           <div style={{ textAlign:'center', marginBottom:'15px' }}>
             <div style={{ position:'relative', display:'inline-block' }}>
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="البروفيل" style={{ width:'100px', height:'100px', borderRadius:'50%', objectFit:'cover', border:'3px solid #1a6b3c' }} />
+                <img
+                  src={profile.avatar_url}
+                  alt="البروفيل"
+                  onClick={handleAvatarClick}
+                  style={{ width:'100px', height:'100px', borderRadius:'50%', objectFit:'cover', border:'3px solid #1a6b3c', cursor:'pointer' }}
+                />
               ) : (
-                <div style={{ width:'100px', height:'100px', borderRadius:'50%', background:'#e8f5e9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'50px', margin:'0 auto', border:'3px solid #1a6b3c' }}>👤</div>
+                <div
+                  onClick={handleAvatarClick}
+                  style={{ width:'100px', height:'100px', borderRadius:'50%', background:'#e8f5e9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'50px', margin:'0 auto', border:'3px solid #1a6b3c', cursor:'pointer' }}
+                >👤</div>
               )}
-              <label style={{ position:'absolute', bottom:'0', left:'0', background:'#1a6b3c', color:'white', borderRadius:'50%', width:'28px', height:'28px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px' }}>
+              <div
+                onClick={handleAvatarClick}
+                style={{ position:'absolute', bottom:'0', left:'0', background:'#1a6b3c', color:'white', borderRadius:'50%', width:'28px', height:'28px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px', border:'2px solid white' }}
+              >
                 {uploadingAvatar ? '...' : '📷'}
-                <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display:'none' }} />
-              </label>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                style={{ display:'none' }}
+              />
             </div>
             <p style={{ color:'#999', margin:'8px 0 0 0', fontSize:'13px' }}>{session.user.email}</p>
+            <p style={{ color:'#bbb', margin:'3px 0 0 0', fontSize:'12px' }}>اضغط على الصورة لتعديلها</p>
           </div>
 
           {!editing ? (
@@ -145,7 +229,6 @@ function Profile({ session, onBack, onNavigate }) {
                 <span style={{ fontWeight:'bold' }}>{profile?.ville || 'غير محدد'}</span>
               </div>
 
-              {/* زر لوحة التحكم للمسؤول فقط */}
               {session?.user?.email === ADMIN_EMAIL && (
                 <button
                   onClick={() => onNavigate('admin')}
@@ -196,7 +279,7 @@ function Profile({ session, onBack, onNavigate }) {
           annonces.map(annonce => (
             <div key={annonce.id} style={{ background:'white', borderRadius:'12px', padding:'15px', marginBottom:'15px', boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
               {annonce.photos && annonce.photos[0] && (
-                <img src={annonce.photos[0]} alt={annonce.titre} style={{ width:'100%', height:'150px', objectFit:'cover', borderRadius:'8px', marginBottom:'10px' }} />
+                <img src={annonce.photos[0]} alt={annonce.titre} style={{ width:'100%', height:'200px', objectFit:'contain', borderRadius:'8px', marginBottom:'10px', background:'#f5f5f5' }} />
               )}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
                 <h4 style={{ margin:0, color:'#1a6b3c' }}>{annonce.titre}</h4>

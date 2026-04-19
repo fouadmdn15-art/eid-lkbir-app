@@ -98,12 +98,10 @@ function Home({ session, onNavigate }) {
       backgroundAttachment:'fixed',
       position:'relative'
     }}>
-      {/* تغطية خضراء شفافة */}
       <div style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(26,107,60,0.45)', zIndex:0, pointerEvents:'none' }} />
 
       <div style={{ position:'relative', zIndex:1 }}>
 
-        {/* الهيدر */}
         <div style={{ background:'rgba(26,107,60,0.95)', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', backdropFilter:'blur(10px)', boxShadow:'0 2px 10px rgba(0,0,0,0.2)' }}>
           <h2 style={{ color:'white', margin:0, fontSize:'20px' }}>🐑 سوق العيد</h2>
 
@@ -208,7 +206,6 @@ function Home({ session, onNavigate }) {
           )}
         </div>
 
-        {/* popup الصورة المكبرة */}
         {selectedPhoto && (
           <div onClick={() => setSelectedPhoto(null)} style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.9)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, cursor:'pointer' }}>
             <img src={selectedPhoto} alt="صورة الحولي" style={{ maxWidth:'95%', maxHeight:'95%', objectFit:'contain', borderRadius:'10px' }} />
@@ -216,7 +213,6 @@ function Home({ session, onNavigate }) {
           </div>
         )}
 
-        {/* popup ديال التسجيل */}
         {showAuthPopup && (
           <div onClick={() => setShowAuthPopup(false)} style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000, padding:'20px' }}>
             <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'15px', padding:'30px', maxWidth:'400px', width:'100%', textAlign:'center', boxShadow:'0 10px 40px rgba(0,0,0,0.3)' }}>
@@ -276,7 +272,7 @@ function Home({ session, onNavigate }) {
                       src={annonce.photos[0]}
                       alt={annonce.titre}
                       onClick={() => setSelectedPhoto(annonce.photos[0])}
-                      style={{ width:'100%', height:'220px', objectFit:'cover', cursor:'zoom-in', display:'block' }}
+                      style={{ width:'100%', height:'280px', objectFit:'contain', cursor:'zoom-in', display:'block', background:'#f5f5f5' }}
                     />
                     <div style={{ position:'absolute', bottom:'10px', left:'10px', background:'rgba(0,0,0,0.5)', color:'white', padding:'4px 8px', borderRadius:'5px', fontSize:'12px' }}>
                       🔍 اضغط للتكبير
