@@ -1,11 +1,36 @@
 import { useState } from 'react'
 import { supabase } from '../config/supabase'
 
+// قائمة الدول مع الأعلام والأكواد
+const COUNTRIES = [
+  { code: '+212', flag: '🇲🇦', name: 'المغرب' },
+  { code: '+34', flag: '🇪🇸', name: 'إسبانيا' },
+  { code: '+33', flag: '🇫🇷', name: 'فرنسا' },
+  { code: '+39', flag: '🇮🇹', name: 'إيطاليا' },
+  { code: '+32', flag: '🇧🇪', name: 'بلجيكا' },
+  { code: '+31', flag: '🇳🇱', name: 'هولندا' },
+  { code: '+49', flag: '🇩🇪', name: 'ألمانيا' },
+  { code: '+44', flag: '🇬🇧', name: 'بريطانيا' },
+  { code: '+46', flag: '🇸🇪', name: 'السويد' },
+  { code: '+47', flag: '🇳🇴', name: 'النرويج' },
+  { code: '+41', flag: '🇨🇭', name: 'سويسرا' },
+  { code: '+43', flag: '🇦🇹', name: 'النمسا' },
+  { code: '+45', flag: '🇩🇰', name: 'الدنمارك' },
+  { code: '+1', flag: '🇺🇸', name: 'أمريكا / كندا' },
+  { code: '+966', flag: '🇸🇦', name: 'السعودية' },
+  { code: '+971', flag: '🇦🇪', name: 'الإمارات' },
+  { code: '+974', flag: '🇶🇦', name: 'قطر' },
+  { code: '+965', flag: '🇰🇼', name: 'الكويت' },
+  { code: '+213', flag: '🇩🇿', name: 'الجزائر' },
+  { code: '+216', flag: '🇹🇳', name: 'تونس' },
+]
+
 function Auth({ onBack }) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nom, setNom] = useState('')
+  const [countryCode, setCountryCode] = useState('+212')
   const [telephone, setTelephone] = useState('')
   const [ville, setVille] = useState('')
   const [typeCompte, setTypeCompte] = useState('acheteur')
@@ -39,6 +64,12 @@ function Auth({ onBack }) {
       setMessage('⚠️ كلمة السر خاصها تكون 6 أحرف على الأقل!')
       return
     }
+    // نحيدو أي رموز خاصة من الرقم (فراغات، شرطات، +)
+    const cleanPhone = telephone.replace(/[^0-9]/g, '').replace(/^0+/, '')
+    if (cleanPhone.length < 6) {
+      setMessage('⚠️ رقم الهاتف غير صحيح!')
+      return
+    }
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
@@ -49,7 +80,10 @@ function Auth({ onBack }) {
     if (data.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
-        nom, telephone, ville,
+        nom,
+        telephone: cleanPhone,
+        country_code: countryCode,
+        ville,
         type_compte: typeCompte
       })
     }
@@ -119,7 +153,6 @@ function Auth({ onBack }) {
     }}>
       <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(26,107,60,0.45)' }} />
 
-      {/* زر الرجوع — يبان غير إيلا كان onBack متوفر */}
       {onBack && (
         <button
           onClick={onBack}
@@ -132,7 +165,6 @@ function Auth({ onBack }) {
 
       <div style={{ position:'relative', zIndex:1, width:'100%', maxWidth:'400px' }}>
 
-        {/* اللوغو */}
         <div style={{ textAlign:'center', marginBottom:'25px' }}>
           <h1 style={{ color:'white', fontSize:'32px', margin:'5px 0', textShadow:'2px 2px 4px rgba(0,0,0,0.5)' }}>
             عيد الكبير مبارك سعيد
@@ -142,7 +174,6 @@ function Auth({ onBack }) {
           </p>
         </div>
 
-        {/* تابات */}
         <div style={{ display:'flex', marginBottom:'20px', background:'rgba(255,255,255,0.2)', borderRadius:'10px', padding:'4px' }}>
           <button
             onClick={() => { setIsLogin(true); setMessage('') }}
@@ -158,7 +189,6 @@ function Auth({ onBack }) {
           </button>
         </div>
 
-        {/* الفورم */}
         <div style={{ background:'rgba(255,255,255,0.95)', borderRadius:'15px', padding:'25px', display:'flex', flexDirection:'column', gap:'12px', boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>
 
           {!isLogin && <>
@@ -168,12 +198,37 @@ function Auth({ onBack }) {
               value={nom}
               onChange={e => setNom(e.target.value)}
             />
-            <input
-              style={{ padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right' }}
-              placeholder="رقم الهاتف *"
-              value={telephone}
-              onChange={e => setTelephone(e.target.value)}
-            />
+
+            {/* اختيار البلد + الرقم */}
+            <div>
+              <label style={{ display:'block', marginBottom:'5px', fontSize:'13px', color:'#666', fontWeight:'bold' }}>
+                📱 رقم الهاتف *
+              </label>
+              <div style={{ display:'flex', gap:'8px' }}>
+                <select
+                  style={{ padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'15px', background:'white', cursor:'pointer', minWidth:'130px' }}
+                  value={countryCode}
+                  onChange={e => setCountryCode(e.target.value)}
+                >
+                  {COUNTRIES.map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag} {c.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  style={{ flex:1, padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right', direction:'ltr' }}
+                  placeholder="612345678"
+                  type="tel"
+                  value={telephone}
+                  onChange={e => setTelephone(e.target.value)}
+                />
+              </div>
+              <p style={{ fontSize:'11px', color:'#999', margin:'5px 0 0 0', textAlign:'right' }}>
+                💡 اكتب الرقم بلا الصفر والرمز ديال البلد
+              </p>
+            </div>
+
             <input
               style={{ padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right' }}
               placeholder="المدينة *"

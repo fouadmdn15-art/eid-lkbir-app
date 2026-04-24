@@ -25,6 +25,16 @@ function Home({ session, onNavigate }) {
     action()
   }
 
+  // فونكسيون ذكية لبناء رابط الواتساب
+  const buildWhatsAppUrl = (countryCode, telephone) => {
+    if (!telephone) return '#'
+    // نظف الرقم من أي رموز
+    const cleanPhone = telephone.replace(/[^0-9]/g, '').replace(/^0+/, '')
+    // نظف كود البلد (احذف +)
+    const cleanCode = (countryCode || '+212').replace('+', '')
+    return `https://wa.me/${cleanCode}${cleanPhone}`
+  }
+
   useEffect(() => {
     if (!session) return
     const fetchProfile = async () => {
@@ -68,7 +78,7 @@ function Home({ session, onNavigate }) {
     const fetchAnnonces = async () => {
       const { data, error } = await supabase
         .from('annonces')
-        .select('*, profiles(telephone, nom)')
+        .select('*, profiles(telephone, country_code, nom)')
         .eq('disponible', true)
         .order('created_at', { ascending: false })
       if (!error) setAnnonces(data)
@@ -251,7 +261,7 @@ function Home({ session, onNavigate }) {
           {!session && (
             <div style={{ background:'rgba(255,255,255,0.95)', color:'#1a6b3c', padding:'15px', borderRadius:'10px', marginBottom:'20px', textAlign:'center', boxShadow:'0 4px 15px rgba(0,0,0,0.15)' }}>
               <p style={{ margin:0, fontSize:'15px', fontWeight:'bold' }}>
-                👋 مرحبا بك فـ <strong>سوق العيد</strong>! تصفح الحوالا بحرية، وسجل غير ملي تبغي تتواصل مع بائع.
+                👋 مرحبا بك فـ <strong>الرحبة</strong>! تصفح الحوالا بحرية، وسجل غير ملي تبغي تتواصل مع بائع.
               </p>
             </div>
           )}
@@ -308,7 +318,7 @@ function Home({ session, onNavigate }) {
 
                   {session ? (
                     <a
-                      href={`https://wa.me/212${annonce.profiles?.telephone?.replace(/^0/, '')}`}
+                      href={buildWhatsAppUrl(annonce.profiles?.country_code, annonce.profiles?.telephone)}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ display:'block', width:'100%', padding:'10px', background:'#25D366', color:'white', borderRadius:'8px', fontSize:'16px', cursor:'pointer', fontWeight:'bold', textAlign:'center', textDecoration:'none', boxSizing:'border-box' }}

@@ -3,6 +3,30 @@ import { supabase } from '../config/supabase'
 
 const ADMIN_EMAIL = 'fouadmdn15@gmail.com'
 
+// قائمة الدول مع الأعلام والأكواد
+const COUNTRIES = [
+  { code: '+212', flag: '🇲🇦', name: 'المغرب' },
+  { code: '+34', flag: '🇪🇸', name: 'إسبانيا' },
+  { code: '+33', flag: '🇫🇷', name: 'فرنسا' },
+  { code: '+39', flag: '🇮🇹', name: 'إيطاليا' },
+  { code: '+32', flag: '🇧🇪', name: 'بلجيكا' },
+  { code: '+31', flag: '🇳🇱', name: 'هولندا' },
+  { code: '+49', flag: '🇩🇪', name: 'ألمانيا' },
+  { code: '+44', flag: '🇬🇧', name: 'بريطانيا' },
+  { code: '+46', flag: '🇸🇪', name: 'السويد' },
+  { code: '+47', flag: '🇳🇴', name: 'النرويج' },
+  { code: '+41', flag: '🇨🇭', name: 'سويسرا' },
+  { code: '+43', flag: '🇦🇹', name: 'النمسا' },
+  { code: '+45', flag: '🇩🇰', name: 'الدنمارك' },
+  { code: '+1', flag: '🇺🇸', name: 'أمريكا / كندا' },
+  { code: '+966', flag: '🇸🇦', name: 'السعودية' },
+  { code: '+971', flag: '🇦🇪', name: 'الإمارات' },
+  { code: '+974', flag: '🇶🇦', name: 'قطر' },
+  { code: '+965', flag: '🇰🇼', name: 'الكويت' },
+  { code: '+213', flag: '🇩🇿', name: 'الجزائر' },
+  { code: '+216', flag: '🇹🇳', name: 'تونس' },
+]
+
 function Profile({ session, onBack, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [annonces, setAnnonces] = useState([])
@@ -15,6 +39,7 @@ function Profile({ session, onBack, onNavigate }) {
 
   const [nom, setNom] = useState('')
   const [telephone, setTelephone] = useState('')
+  const [countryCode, setCountryCode] = useState('+212')
   const [ville, setVille] = useState('')
 
   useEffect(() => {
@@ -29,6 +54,7 @@ function Profile({ session, onBack, onNavigate }) {
         setProfile(profileData)
         setNom(profileData.nom || '')
         setTelephone(profileData.telephone || '')
+        setCountryCode(profileData.country_code || '+212')
         setVille(profileData.ville || '')
       }
 
@@ -67,7 +93,6 @@ function Profile({ session, onBack, onNavigate }) {
       setMessage('⚠️ خطأ فرفع الصورة')
     }
     setUploadingAvatar(false)
-    // نفرغو الـ input باش يقدر يرفع نفس الصورة مرة أخرى
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -89,8 +114,6 @@ function Profile({ session, onBack, onNavigate }) {
   }
 
   const handleAvatarClick = () => {
-    // إيلا كاينة صورة: نبان المنيو (تغيير/حذف)
-    // إيلا ماكايناش: نفتحو directement الفايل
     if (profile?.avatar_url) {
       setShowAvatarMenu(true)
     } else {
@@ -99,15 +122,28 @@ function Profile({ session, onBack, onNavigate }) {
   }
 
   const handleSave = async () => {
+    // نظف الرقم من أي رموز
+    const cleanPhone = telephone.replace(/[^0-9]/g, '').replace(/^0+/, '')
+    if (cleanPhone.length < 6) {
+      setMessage('⚠️ رقم الهاتف غير صحيح!')
+      return
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ nom, telephone, ville })
+      .update({
+        nom,
+        telephone: cleanPhone,
+        country_code: countryCode,
+        ville
+      })
       .eq('id', session.user.id)
+
     if (error) {
       setMessage('خطأ: ' + error.message)
     } else {
       setMessage('✅ تم حفظ التعديلات!')
-      setProfile({ ...profile, nom, telephone, ville })
+      setProfile({ ...profile, nom, telephone: cleanPhone, country_code: countryCode, ville })
       setEditing(false)
     }
   }
@@ -135,6 +171,11 @@ function Profile({ session, onBack, onNavigate }) {
 
   if (loading) return <div style={{ textAlign:'center', padding:'50px' }}>جاري التحميل...</div>
 
+  // نبان الرقم مع country_code
+  const displayPhone = profile?.telephone
+    ? `${profile.country_code || '+212'} ${profile.telephone}`
+    : 'غير محدد'
+
   return (
     <div style={{ fontFamily:'Arial', direction:'rtl', minHeight:'100vh', background:'#f5f5f5' }}>
 
@@ -145,7 +186,6 @@ function Profile({ session, onBack, onNavigate }) {
         </button>
       </div>
 
-      {/* Popup ديال إدارة الصورة */}
       {showAvatarMenu && (
         <div onClick={() => setShowAvatarMenu(false)} style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000, padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'15px', padding:'25px', maxWidth:'350px', width:'100%', boxShadow:'0 10px 40px rgba(0,0,0,0.3)' }}>
@@ -222,7 +262,7 @@ function Profile({ session, onBack, onNavigate }) {
               </div>
               <div style={{ marginBottom:'10px', padding:'10px', background:'#f9f9f9', borderRadius:'8px' }}>
                 <span style={{ color:'#999', fontSize:'14px' }}>الهاتف: </span>
-                <span style={{ fontWeight:'bold' }}>{profile?.telephone || 'غير محدد'}</span>
+                <span style={{ fontWeight:'bold', direction:'ltr', display:'inline-block' }}>{displayPhone}</span>
               </div>
               <div style={{ marginBottom:'15px', padding:'10px', background:'#f9f9f9', borderRadius:'8px' }}>
                 <span style={{ color:'#999', fontSize:'14px' }}>المدينة: </span>
@@ -251,10 +291,35 @@ function Profile({ session, onBack, onNavigate }) {
                 <label style={{ display:'block', marginBottom:'5px', fontWeight:'bold', color:'#333' }}>الاسم</label>
                 <input style={{ width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right', boxSizing:'border-box' }} value={nom} onChange={e => setNom(e.target.value)} />
               </div>
+
+              {/* رقم الهاتف مع البلد */}
               <div style={{ marginBottom:'12px' }}>
-                <label style={{ display:'block', marginBottom:'5px', fontWeight:'bold', color:'#333' }}>رقم الهاتف</label>
-                <input style={{ width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right', boxSizing:'border-box' }} value={telephone} onChange={e => setTelephone(e.target.value)} />
+                <label style={{ display:'block', marginBottom:'5px', fontWeight:'bold', color:'#333' }}>📱 رقم الهاتف</label>
+                <div style={{ display:'flex', gap:'8px' }}>
+                  <select
+                    style={{ padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'15px', background:'white', cursor:'pointer', minWidth:'130px' }}
+                    value={countryCode}
+                    onChange={e => setCountryCode(e.target.value)}
+                  >
+                    {COUNTRIES.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    style={{ flex:1, padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right', direction:'ltr', boxSizing:'border-box' }}
+                    placeholder="612345678"
+                    type="tel"
+                    value={telephone}
+                    onChange={e => setTelephone(e.target.value)}
+                  />
+                </div>
+                <p style={{ fontSize:'11px', color:'#999', margin:'5px 0 0 0', textAlign:'right' }}>
+                  💡 اكتب الرقم بلا الصفر والرمز ديال البلد
+                </p>
               </div>
+
               <div style={{ marginBottom:'15px' }}>
                 <label style={{ display:'block', marginBottom:'5px', fontWeight:'bold', color:'#333' }}>المدينة</label>
                 <input style={{ width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'16px', textAlign:'right', boxSizing:'border-box' }} value={ville} onChange={e => setVille(e.target.value)} />
