@@ -13,6 +13,7 @@ function Admin({ session, onBack }) {
   const [loading, setLoading] = useState(true)
   const [unreadByUser, setUnreadByUser] = useState({})
   const [actionMessage, setActionMessage] = useState('')
+  const [deletingUserId, setDeletingUserId] = useState(null)
 
   if (session?.user?.email !== ADMIN_EMAIL) {
     return (
@@ -62,14 +63,16 @@ function Admin({ session, onBack }) {
   }, [])
 
   // جيب كل المستخدمين
+  const fetchAllUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setAllUsers(data)
+    if (error) console.error('Error fetching users:', error)
+  }
+
   useEffect(() => {
-    const fetchAllUsers = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (data) setAllUsers(data)
-    }
     fetchAllUsers()
   }, [])
 
@@ -130,36 +133,60 @@ function Admin({ session, onBack }) {
       ))
       setActionMessage(currentStatus ? '✅ تم إلغاء الاشتراك' : '✅ تم تفعيل الاشتراك Pro')
       setTimeout(() => setActionMessage(''), 3000)
+    } else {
+      setActionMessage('⚠️ خطأ: ' + error.message)
+      setTimeout(() => setActionMessage(''), 5000)
     }
   }
 
-  // حذف حساب
+  // 🆕 حذف حساب كامل (يستعمل الـ function الآمنة فـ Supabase)
   const handleDeleteUser = async (userId, nom) => {
-    const confirmMsg = `واش بغيتي تحذف حساب "${nom}"؟\n\n⚠️ غادي يتمسح:\n✅ البروفيل\n✅ الإعلانات\n✅ الرسائل\n\n❗ ملاحظة: الإيميل خاصك تمسحو يدوياً من Supabase (كاين زر فوق "🔗 Supabase Users")`
+    const confirmMsg = `واش متأكد بغيتي تحذف حساب "${nom || 'بدون اسم'}"؟\n\n⚠️ هاد العملية ما يمكن التراجع عنها!\n\nغادي يتمسح كاع:\n• البروفيل\n• الإعلانات\n• الرسائل\n• الإيميل من قاعدة البيانات`
+
     if (!window.confirm(confirmMsg)) return
 
-    // حذف الإعلانات أولاً
-    const { error: annoncesError } = await supabase.from('annonces').delete().eq('vendeur_id', userId)
-    if (annoncesError) {
-      setActionMessage('⚠️ خطأ فحذف الإعلانات: ' + annoncesError.message)
+    // ما نخليش الأدمين يحذف راسو!
+    if (userId === session.user.id) {
+      setActionMessage('⚠️ ما تقدرش تحذف الحساب ديالك!')
+      setTimeout(() => setActionMessage(''), 5000)
       return
     }
 
-    // حذف الرسائل
-    const { error: messagesError } = await supabase.from('support_messages').delete().eq('user_id', userId)
-    if (messagesError) {
-      setActionMessage('⚠️ خطأ فحذف الرسائل: ' + messagesError.message)
-      return
-    }
+    setDeletingUserId(userId)
+    setActionMessage('🔄 جاري الحذف...')
 
-    // حذف البروفيل
-    const { error } = await supabase.from('profiles').delete().eq('id', userId)
-    if (!error) {
+    try {
+      // نستعمل الـ function الآمنة اللي درنا فـ Supabase
+      const { data, error } = await supabase.rpc('delete_user_completely', {
+        user_id_to_delete: userId
+      })
+
+      if (error) {
+        setActionMessage('⚠️ خطأ: ' + error.message)
+        setTimeout(() => setActionMessage(''), 7000)
+        return
+      }
+
+      // نشوفو إيلا الـ function رجعت success
+      if (data && data.success === false) {
+        setActionMessage('⚠️ خطأ: ' + (data.error || 'فشل الحذف'))
+        setTimeout(() => setActionMessage(''), 7000)
+        return
+      }
+
+      // الحذف نجح!
       setAllUsers(allUsers.filter(u => u.id !== userId))
-      setActionMessage('✅ تم حذف البيانات! دابا امسح الإيميل من Supabase (كليكي على "🔗 Supabase Users" فوق)')
-      setTimeout(() => setActionMessage(''), 10000)
-    } else {
-      setActionMessage('⚠️ خطأ: ' + error.message)
+      setActionMessage(`✅ تم حذف الحساب بنجاح! (${data?.deleted_email || nom})`)
+      setTimeout(() => setActionMessage(''), 5000)
+
+      // Refresh قائمة المستخدمين باش نتأكدو
+      fetchAllUsers()
+
+    } catch (err) {
+      setActionMessage('⚠️ خطأ غير متوقع: ' + err.message)
+      setTimeout(() => setActionMessage(''), 7000)
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -200,7 +227,14 @@ function Admin({ session, onBack }) {
 
       {/* رسالة الإجراء */}
       {actionMessage && (
-        <div style={{ background:'#d4edda', color:'#155724', padding:'10px', textAlign:'center', fontWeight:'bold' }}>
+        <div style={{
+          background: actionMessage.includes('✅') ? '#d4edda' : actionMessage.includes('🔄') ? '#fff3cd' : '#f8d7da',
+          color: actionMessage.includes('✅') ? '#155724' : actionMessage.includes('🔄') ? '#856404' : '#721c24',
+          padding:'12px',
+          textAlign:'center',
+          fontWeight:'bold',
+          borderBottom:'1px solid rgba(0,0,0,0.1)'
+        }}>
           {actionMessage}
         </div>
       )}
@@ -293,42 +327,60 @@ function Admin({ session, onBack }) {
           {allUsers.length === 0 ? (
             <p style={{ textAlign:'center', color:'#999' }}>ما كاين حتى مستخدم</p>
           ) : (
-            allUsers.map(user => (
-              <div key={user.id} style={{ background:'white', borderRadius:'12px', padding:'15px', marginBottom:'15px', boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
-                  <div>
-                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'5px' }}>
-                      <span style={{ fontSize:'24px' }}>👤</span>
-                      <strong style={{ fontSize:'16px' }}>{user.nom || 'بدون اسم'}</strong>
-                      {user.abonnement && (
-                        <span style={{ background:'#ffd700', color:'#333', padding:'2px 8px', borderRadius:'10px', fontSize:'12px', fontWeight:'bold' }}>⭐ Pro</span>
-                      )}
-                    </div>
-                    <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>📱 {user.telephone || 'بدون هاتف'}</p>
-                    <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>📍 {user.ville || 'بدون مدينة'}</p>
-                    <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>
-                      🏷️ {user.type_compte === 'vendeur' ? 'بائع' : 'مشتري'}
-                    </p>
-                  </div>
-                </div>
+            allUsers.map(user => {
+              const isAdmin = user.id === session.user.id
+              const isDeleting = deletingUserId === user.id
 
-                {/* الأزرار */}
-                <div style={{ display:'flex', gap:'8px' }}>
-                  <button
-                    onClick={() => handleToggleAbonnement(user.id, user.abonnement)}
-                    style={{ flex:1, padding:'10px', background: user.abonnement ? '#ff9800' : '#1a3a6b', color:'white', border:'none', borderRadius:'8px', fontSize:'13px', cursor:'pointer', fontWeight:'bold' }}
-                  >
-                    {user.abonnement ? '❌ إلغاء Pro' : '⭐ تفعيل Pro'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(user.id, user.nom)}
-                    style={{ flex:1, padding:'10px', background:'#f44336', color:'white', border:'none', borderRadius:'8px', fontSize:'13px', cursor:'pointer', fontWeight:'bold' }}
-                  >
-                    🗑️ حذف الحساب
-                  </button>
+              return (
+                <div key={user.id} style={{ background:'white', borderRadius:'12px', padding:'15px', marginBottom:'15px', boxShadow:'0 2px 8px rgba(0,0,0,0.1)', opacity: isDeleting ? 0.5 : 1 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'5px', flexWrap:'wrap' }}>
+                        <span style={{ fontSize:'24px' }}>👤</span>
+                        <strong style={{ fontSize:'16px' }}>{user.nom || 'بدون اسم'}</strong>
+                        {isAdmin && (
+                          <span style={{ background:'#1a3a6b', color:'white', padding:'2px 8px', borderRadius:'10px', fontSize:'11px', fontWeight:'bold' }}>🛠️ أدمين</span>
+                        )}
+                        {user.abonnement && (
+                          <span style={{ background:'#ffd700', color:'#333', padding:'2px 8px', borderRadius:'10px', fontSize:'12px', fontWeight:'bold' }}>⭐ Pro</span>
+                        )}
+                      </div>
+                      <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>📱 {user.country_code || '+212'} {user.telephone || 'بدون هاتف'}</p>
+                      <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>📍 {user.ville || 'بدون مدينة'}</p>
+                      <p style={{ margin:'3px 0', color:'#666', fontSize:'13px' }}>
+                        🏷️ {user.type_compte === 'vendeur' ? 'بائع' : 'مشتري'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* الأزرار */}
+                  {!isAdmin && (
+                    <div style={{ display:'flex', gap:'8px' }}>
+                      <button
+                        onClick={() => handleToggleAbonnement(user.id, user.abonnement)}
+                        disabled={isDeleting}
+                        style={{ flex:1, padding:'10px', background: user.abonnement ? '#ff9800' : '#1a3a6b', color:'white', border:'none', borderRadius:'8px', fontSize:'13px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight:'bold' }}
+                      >
+                        {user.abonnement ? '❌ إلغاء Pro' : '⭐ تفعيل Pro'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id, user.nom)}
+                        disabled={isDeleting}
+                        style={{ flex:1, padding:'10px', background: isDeleting ? '#999' : '#f44336', color:'white', border:'none', borderRadius:'8px', fontSize:'13px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight:'bold' }}
+                      >
+                        {isDeleting ? '🔄 جاري الحذف...' : '🗑️ حذف الحساب'}
+                      </button>
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <p style={{ textAlign:'center', color:'#999', fontSize:'12px', margin:'10px 0 0 0', fontStyle:'italic' }}>
+                      💡 الحساب ديال الأدمين ما يقدرش يتحذف
+                    </p>
+                  )}
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       )}
