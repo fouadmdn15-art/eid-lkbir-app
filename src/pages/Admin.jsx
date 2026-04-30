@@ -203,7 +203,7 @@ function Admin({ session, onBack }) {
             rel="noopener noreferrer"
             style={{ background:'#3ecf8e', color:'white', textDecoration:'none', padding:'8px 15px', borderRadius:'8px', fontSize:'13px', fontWeight:'bold', display:'flex', alignItems:'center', gap:'5px' }}
           >
-            🔗 Supabase Users
+            👁️ مراقبة المستخدمين
           </a>
           <button onClick={onBack} style={{ background:'rgba(255,255,255,0.2)', color:'white', border:'none', padding:'8px 15px', borderRadius:'8px', cursor:'pointer' }}>رجوع</button>
         </div>
