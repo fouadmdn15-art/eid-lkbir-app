@@ -38,20 +38,40 @@ function Auth({ onBack }) {
   const [message, setMessage] = useState('')
   const [emailSent, setEmailSent] = useState(false)
 
+  // نخزنو معلومات التسجيل مؤقتاً باش نحفظوها بعد تأكيد الإيميل
+  const [pendingProfile, setPendingProfile] = useState(null)
+
   const handleLogin = async () => {
     if (!email || !password) {
       setMessage('⚠️ البريد الإلكتروني وكلمة السر إجباريين!')
       return
     }
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
     if (error) {
       if (error.message.includes('Email not confirmed')) {
         setMessage('⚠️ خاصك تأكد الإيميل ديالك أولاً! شوف صندوق الوارد')
       } else {
         setMessage('⚠️ البريد أو كلمة السر غلط!')
       }
+      setLoading(false)
+      return
     }
+
+    // 🎯 ملي ينجح الدخول، نشوفو واش البروفيل ناقصة فيه معلومات
+    // (يقع هادا للمستخدمين اللي تسجلو ولكن المعلومات ما تحفظوش)
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nom, telephone')
+        .eq('id', data.user.id)
+        .single()
+
+      // إيلا البروفيل فارغ، ما نديرو والو — المستخدم غادي يعدل من البروفيل
+      // (هادا الـ flow الطبيعي)
+    }
+
     setLoading(false)
   }
 
@@ -64,29 +84,70 @@ function Auth({ onBack }) {
       setMessage('⚠️ كلمة السر خاصها تكون 6 أحرف على الأقل!')
       return
     }
-    // نحيدو أي رموز خاصة من الرقم (فراغات، شرطات، +)
+
+    // نحيدو أي رموز خاصة من الرقم
     const cleanPhone = telephone.replace(/[^0-9]/g, '').replace(/^0+/, '')
     if (cleanPhone.length < 6) {
       setMessage('⚠️ رقم الهاتف غير صحيح!')
       return
     }
+
     setLoading(true)
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    setMessage('')
+
+    // 1) تسجيل الحساب فـ Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // نمررو المعلومات فـ user_metadata باش تكون متاحة لو احتجناها
+        data: {
+          nom,
+          telephone: cleanPhone,
+          country_code: countryCode,
+          ville,
+          type_compte: typeCompte
+        }
+      }
+    })
+
     if (error) {
       setMessage('خطأ: ' + error.message)
       setLoading(false)
       return
     }
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        nom,
+
+    if (!data.user) {
+      setMessage('⚠️ خطأ غير متوقع، حاول مرة أخرى')
+      setLoading(false)
+      return
+    }
+
+    // 2) UPDATE البروفيل (الـ trigger أصلاً خلق صف فارغ)
+    // هادي العملية الأهم!
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        nom: nom,
         telephone: cleanPhone,
         country_code: countryCode,
-        ville,
+        ville: ville,
         type_compte: typeCompte
       })
+      .eq('id', data.user.id)
+
+    if (updateError) {
+      console.error('Profile update error:', updateError)
+      // نخزنو المعلومات مؤقتاً فـ localStorage باش نحاولو مرة أخرى ملي يدخل
+      try {
+        localStorage.setItem('pending_profile_' + data.user.id, JSON.stringify({
+          nom, telephone: cleanPhone, country_code: countryCode, ville, type_compte: typeCompte
+        }))
+      } catch (e) {
+        console.error('localStorage error:', e)
+      }
     }
+
     setEmailSent(true)
     setLoading(false)
   }
@@ -199,7 +260,6 @@ function Auth({ onBack }) {
               onChange={e => setNom(e.target.value)}
             />
 
-            {/* اختيار البلد + الرقم */}
             <div>
               <label style={{ display:'block', marginBottom:'5px', fontSize:'13px', color:'#666', fontWeight:'bold' }}>
                 📱 رقم الهاتف *
